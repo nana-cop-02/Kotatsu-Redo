@@ -7,7 +7,6 @@ import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.koitharu.kotatsu.core.util.ext.createParentDirs
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException

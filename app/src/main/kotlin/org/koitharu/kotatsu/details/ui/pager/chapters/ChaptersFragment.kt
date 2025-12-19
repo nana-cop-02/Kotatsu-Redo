@@ -104,7 +104,7 @@ class ChaptersFragment :
 		viewModel.emptyReason.observe(viewLifecycleOwner) {
 			binding.textViewHolder.setTextAndVisible(it?.msgResId ?: 0)
 		}
-		viewModel.openPdfEvent.observe(viewLifecycleOwner) { uri ->
+		viewModel.openPdfEvent.observeEvent(viewLifecycleOwner) { uri ->
 			if (uri != null) {
 				openPdfFile(uri)
 			}
