@@ -252,7 +252,7 @@ abstract class ChaptersPagesViewModel(
 		launchLoadingJob(Dispatchers.Default) {
 			val manga = requireManga()
 			val chapters = checkNotNull(manga.chapters)
-			val chapter = chapters.values.flatten().firstOrNull { it.id == chapterId }
+			val chapter = chapters.firstOrNull { it.id == chapterId }
 			if (chapter == null) {
 				errorEvent.call(FileNotFoundException())
 				return@launchLoadingJob
@@ -295,7 +295,7 @@ abstract class ChaptersPagesViewModel(
 	fun viewPdf(chapterId: Long) {
 		launchJob(Dispatchers.Default) {
 			val manga = requireManga()
-			val chapter = checkNotNull(manga.chapters).values.flatten().firstOrNull { it.id == chapterId }
+			val chapter = checkNotNull(manga.chapters).firstOrNull { it.id == chapterId }
 			if (chapter == null) {
 				errorEvent.call(FileNotFoundException())
 				return@launchJob

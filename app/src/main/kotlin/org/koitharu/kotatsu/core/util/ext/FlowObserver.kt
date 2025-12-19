@@ -62,3 +62,25 @@ inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, minState: Lif
 	})
 }
 
+inline fun <T> Flow<T>.observe(owner: LifecycleOwner, crossinline action: (T) -> Unit) {
+	observe(owner, object : FlowCollector<T> {
+		override suspend fun emit(value: T) = action(value)
+	})
+}
+
+inline fun <T> Flow<T>.observe(owner: LifecycleOwner, minState: Lifecycle.State, crossinline action: (T) -> Unit) {
+	observe(owner, minState, object : FlowCollector<T> {
+		override suspend fun emit(value: T) = action(value)
+	})
+}
+
+inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, crossinline action: (T) -> Unit) {
+	observeEvent(owner, Lifecycle.State.STARTED, action)
+}
+
+inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, minState: Lifecycle.State, crossinline action: (T) -> Unit) {
+	observeEvent(owner, minState, object : FlowCollector<T> {
+		override suspend fun emit(value: T) = action(value)
+	})
+}
+
