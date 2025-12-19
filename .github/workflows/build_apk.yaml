@@ -1,0 +1,37 @@
+name: Build APK (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build"
+        required: true
+        default: "master"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Debug APK
+        run: ./gradlew app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: apk-${{ inputs.branch }}
+          path: app/build/outputs/apk/debug/*.apk
