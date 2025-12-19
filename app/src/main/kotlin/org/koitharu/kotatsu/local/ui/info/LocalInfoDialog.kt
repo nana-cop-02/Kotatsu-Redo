@@ -1,11 +1,14 @@
 package org.koitharu.kotatsu.local.ui.info
 
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -42,6 +45,10 @@ class LocalInfoDialog : AlertDialogFragment<DialogLocalInfoBinding>(), View.OnCl
 			binding.textViewPath.text = it
 		}
 		binding.chipCleanup.setOnClickListener(this)
+		binding.chipOpenFolder.setOnClickListener(this)
+		viewModel.filesBreakdown.observe(viewLifecycleOwner) {
+			binding.textFilesDetails.text = it
+		}
 		combine(viewModel.size, viewModel.availableSize, ::Pair).observe(viewLifecycleOwner) {
 			if (it.first >= 0 && it.second >= 0) {
 				setSegments(it.first, it.second)
@@ -64,6 +71,26 @@ class LocalInfoDialog : AlertDialogFragment<DialogLocalInfoBinding>(), View.OnCl
 	override fun onClick(v: View) {
 		when (v.id) {
 			R.id.chip_cleanup -> viewModel.cleanup()
+			R.id.chip_open_folder -> openMangaFolder()
+		}
+	}
+
+	private fun openMangaFolder() {
+		val path = viewModel.path.value ?: return
+		val file = java.io.File(path)
+		try {
+			val uri = FileProvider.getUriForFile(
+				requireContext(),
+				"${requireContext().packageName}.fileprovider",
+				file,
+			)
+			val intent = Intent(Intent.ACTION_VIEW).apply {
+				setDataAndType(uri, "resource/folder")
+				addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+			}
+			startActivity(Intent.createChooser(intent, getString(R.string.open_folder)))
+		} catch (e: Exception) {
+			Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
 		}
 	}
 

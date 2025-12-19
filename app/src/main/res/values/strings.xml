@@ -307,6 +307,8 @@
     <string name="exit_confirmation_summary">Press "Back" twice to exit the app</string>
     <string name="exit_confirmation">Exit confirmation</string>
     <string name="saved_manga">Saved manga</string>
+    <string name="open_folder">Open folder</string>
+    <string name="files_breakdown">Files breakdown</string>
     <string name="pages_cache">Pages cache</string>
     <string name="other_cache">Other cache</string>
     <string name="storage_usage">Storage usage</string>

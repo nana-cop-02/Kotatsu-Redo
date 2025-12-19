@@ -62,4 +62,29 @@
 		android:text="@string/delete_read_chapters"
 		app:chipIcon="@drawable/ic_delete" />
 
+	<com.google.android.material.chip.Chip
+		android:id="@+id/chip_open_folder"
+		style="@style/Widget.Kotatsu.Chip.Assist"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="8dp"
+		android:text="@string/open_folder"
+		app:chipIcon="@drawable/ic_folder" />
+
+	<TextView
+		android:id="@+id/label_files_summary"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="16dp"
+		android:text="@string/files_breakdown"
+		android:textAppearance="?textAppearanceLabelMedium" />
+
+	<TextView
+		android:id="@+id/text_files_details"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="4dp"
+		android:textAppearance="?textAppearanceBodySmall"
+		tools:text="55 chapters - 55.4 MB\n2 archives - 12.0 MB\n51 cbz - 30.4 MB\n1 pdf - 13.0 MB" />
+
 </LinearLayout>

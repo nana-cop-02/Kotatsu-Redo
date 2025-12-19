@@ -9,6 +9,7 @@ import org.koitharu.kotatsu.core.model.parcelable.ParcelableManga
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
+import org.koitharu.kotatsu.core.util.FileSize
 import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.core.util.ext.computeSize
 import org.koitharu.kotatsu.core.util.ext.require
@@ -34,6 +35,7 @@ class LocalInfoViewModel @Inject constructor(
 	val path = MutableStateFlow<String?>(null)
 	val size = MutableStateFlow(-1L)
 	val availableSize = MutableStateFlow(-1L)
+	val filesBreakdown = MutableStateFlow<String?>(null)
 
 	init {
 		computeSize()
@@ -60,5 +62,30 @@ class LocalInfoViewModel @Inject constructor(
 		path.value = file.path
 		size.value = file.computeSize()
 		availableSize.value = storageManager.computeAvailableSize()
+		
+		// Compute file breakdown
+		val breakdown = mutableMapOf<String, Pair<Int, Long>>() // extension -> (count, size)
+		file.walkTopDown().forEach { f ->
+			if (f.isFile) {
+				val extension = f.extension.ifEmpty { "other" }
+				val (count, totalSize) = breakdown[extension] ?: (0 to 0L)
+				breakdown[extension] = (count + 1) to (totalSize + f.length())
+			}
+		}
+		
+		filesBreakdown.value = breakdown
+			.entries
+			.sortedByDescending { it.value.second }
+			.joinToString("\n") { (ext, pair) ->
+				val (count, size) = pair
+				val label = when (ext) {
+					"jpg", "jpeg", "png", "gif" -> "$count images"
+					"cbz", "zip", "rar" -> "$count ${ext.uppercase()}"
+					"pdf" -> "$count PDF"
+					else -> "$count $ext"
+				}
+				"$label - ${FileSize.BYTES.format(size)}"
+			}
+			.takeIf { it.isNotEmpty() }
 	}
 }
