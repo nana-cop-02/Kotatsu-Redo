@@ -1,6 +1,9 @@
 package org.koitharu.kotatsu.details.ui.pager
 
 import android.app.Activity
+import android.net.Uri
+import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -18,6 +21,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.plus
+import java.io.File
 import okio.FileNotFoundException
 import org.koitharu.kotatsu.bookmarks.domain.BookmarksRepository
 import org.koitharu.kotatsu.core.model.toChipModel
@@ -41,8 +45,10 @@ import org.koitharu.kotatsu.download.ui.worker.DownloadTask
 import org.koitharu.kotatsu.download.ui.worker.DownloadWorker
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.list.domain.ListFilterOption
+import org.koitharu.kotatsu.local.data.output.LocalPdfConverter
 import org.koitharu.kotatsu.local.domain.DeleteLocalMangaUseCase
 import org.koitharu.kotatsu.local.domain.model.LocalManga
+import org.koitharu.kotatsu.local.util.ConversionNotification
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.reader.ui.ReaderActivity
@@ -58,6 +64,10 @@ abstract class ChaptersPagesViewModel(
 	private val deleteLocalMangaUseCase: DeleteLocalMangaUseCase,
 	private val localStorageChanges: SharedFlow<LocalManga?>,
 ) : BaseViewModel() {
+
+	val conversionProgress = MutableStateFlow<Map<Long, Int>>(emptyMap())
+	val openPdfEvent = MutableEventFlow<Uri?>()
+
 
 	val mangaDetails = MutableStateFlow<MangaDetails?>(null)
 	val readingState = MutableStateFlow<ReaderState?>(null)
@@ -234,6 +244,76 @@ abstract class ChaptersPagesViewModel(
 		launchLoadingJob(Dispatchers.Default) {
 			deleteLocalMangaUseCase(m)
 			onMangaRemoved.call(m)
+		}
+	}
+
+	fun requestPdfConversion(chapterId: Long) {
+		launchLoadingJob(Dispatchers.Default) {
+			val manga = requireManga()
+			val chapters = checkNotNull(manga.chapters)
+			val chapter = chapters.values.flatten().firstOrNull { it.id == chapterId }
+			if (chapter == null) {
+				errorEvent.call(FileNotFoundException())
+				return@launchLoadingJob
+			}
+			try {
+				val chapterUrl = chapter.url
+				val uri = android.net.Uri.parse(chapterUrl)
+				val file = if (uri.scheme == "file") {
+					File(uri.path.orEmpty())
+				} else if (uri.scheme == null || uri.path?.startsWith("/") == true) {
+					// Handle plain file path
+					File(chapterUrl)
+				} else {
+					errorEvent.call(IllegalArgumentException("Unsupported chapter URI: $uri"))
+					return@launchLoadingJob
+				}
+				
+				if (!file.exists() || !file.name.endsWith(".pdf", ignoreCase = true)) {
+					errorEvent.call(IllegalArgumentException("PDF file not found or invalid: ${file.path}"))
+					return@launchLoadingJob
+				}
+				
+				val cbz = File(file.parentFile, file.nameWithoutExtension + ".cbz")
+				val backupDir = File(file.parentFile, ".backupfiles_pdf")
+				LocalPdfConverter.convertPdfToCbz(file, cbz, backupDir) { current, total ->
+					val percent = (current * 100 / total)
+					conversionProgress.update { map -> map + (chapterId to percent) }
+				}
+				conversionProgress.update { map -> map - chapterId }
+			} catch (e: Exception) {
+				errorEvent.call(e)
+				conversionProgress.update { map -> map - chapterId }
+			}
+		}
+	}
+
+	fun viewPdf(chapterId: Long) {
+		launchJob(Dispatchers.Default) {
+			val manga = requireManga()
+			val chapter = checkNotNull(manga.chapters).values.flatten().firstOrNull { it.id == chapterId }
+			if (chapter == null) {
+				errorEvent.call(FileNotFoundException())
+				return@launchJob
+			}
+			try {
+				val chapterUrl = chapter.url
+				val uri = android.net.Uri.parse(chapterUrl)
+				val fileUri = when {
+					uri.scheme == "file" -> uri
+					uri.scheme == null || uri.path?.startsWith("/") == true -> {
+						// Handle plain file path
+						File(chapterUrl).toUri()
+					}
+					else -> {
+						errorEvent.call(IllegalArgumentException("Unsupported chapter URI: $uri"))
+						return@launchJob
+					}
+				}
+				openPdfEvent.call(fileUri)
+			} catch (e: Exception) {
+				errorEvent.call(e)
+			}
 		}
 	}
 

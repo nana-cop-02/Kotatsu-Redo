@@ -1,9 +1,11 @@
 package org.koitharu.kotatsu.details.ui.pager.chapters
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -13,9 +15,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.ReaderIntent
 import org.koitharu.kotatsu.core.nav.dismissParentDialog
@@ -42,7 +47,6 @@ import org.koitharu.kotatsu.list.ui.adapter.TypedListSpacingDecoration
 import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.reader.ui.ReaderNavigationCallback
 import org.koitharu.kotatsu.reader.ui.ReaderState
-import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ChaptersFragment :
@@ -99,6 +103,11 @@ class ChaptersFragment :
 		viewModel.quickFilter.observe(viewLifecycleOwner, this::onFilterChanged)
 		viewModel.emptyReason.observe(viewLifecycleOwner) {
 			binding.textViewHolder.setTextAndVisible(it?.msgResId ?: 0)
+		}
+		viewModel.openPdfEvent.observe(viewLifecycleOwner) { uri ->
+			if (uri != null) {
+				openPdfFile(uri)
+			}
 		}
 	}
 
@@ -184,5 +193,24 @@ class ChaptersFragment :
 
 	private fun onLoadingStateChanged(isLoading: Boolean) {
 		requireViewBinding().progressBar.isVisible = isLoading
+	}
+
+	private fun openPdfFile(uri: android.net.Uri) {
+		try {
+			val contentUri = if (uri.scheme == "file") {
+				// Wrap file URI with FileProvider for proper permissions
+				val file = java.io.File(uri.path.orEmpty())
+				FileProvider.getUriForFile(requireContext(), "${BuildConfig.APPLICATION_ID}.files", file)
+			} else {
+				uri
+			}
+			val intent = Intent(Intent.ACTION_VIEW).apply {
+				data = contentUri
+				flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+			}
+			startActivity(intent)
+		} catch (e: Exception) {
+			e.printStackTrace()
+		}
 	}
 }

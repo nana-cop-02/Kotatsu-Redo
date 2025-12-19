@@ -47,6 +47,13 @@ class ChaptersSelectionCallback(
 		menu.findItem(R.id.action_delete).isVisible = canDelete
 		menu.findItem(R.id.action_select_all).isVisible = items.size < allItems.size
 		menu.findItem(R.id.action_mark_current).isVisible = items.size == 1
+		// Show PDF actions only for a single selected chapter that appears to be a PDF
+		val singlePdf = if (items.size == 1) {
+			val chapter = items[0].value.chapter
+			chapter.url?.endsWith(".pdf", ignoreCase = true) == true
+		} else false
+		menu.findItem(R.id.action_convert_pdf).isVisible = singlePdf
+		menu.findItem(R.id.action_open_pdf).isVisible = singlePdf
 		mode?.title = items.size.toString()
 		var hasGap = false
 		for (i in 0 until items.size - 1) {
@@ -136,6 +143,24 @@ class ChaptersSelectionCallback(
 					return false
 				}
 				mode?.finish()
+				true
+			}
+
+			R.id.action_convert_pdf -> {
+				val ids = controller.peekCheckedIds()
+				if (ids.size == 1) {
+					viewModel.requestPdfConversion(ids.first())
+					mode?.finish()
+				}
+				true
+			}
+
+			R.id.action_open_pdf -> {
+				val ids = controller.peekCheckedIds()
+				if (ids.size == 1) {
+					viewModel.viewPdf(ids.first())
+					mode?.finish()
+				}
 				true
 			}
 

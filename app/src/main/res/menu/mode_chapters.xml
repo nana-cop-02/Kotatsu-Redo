@@ -33,4 +33,16 @@
 		android:title="@android:string/selectAll"
 		app:showAsAction="ifRoom|withText" />
 
+	<item
+		android:id="@+id/action_convert_pdf"
+		android:icon="@drawable/ic_file_zip"
+		android:title="@string/convert_to_cbz"
+		app:showAsAction="never" />
+
+	<item
+		android:id="@+id/action_open_pdf"
+		android:icon="@drawable/ic_open_external"
+		android:title="@string/open_pdf"
+		app:showAsAction="never" />
+
 </menu>
