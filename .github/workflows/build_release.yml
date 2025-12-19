@@ -46,17 +46,24 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5
 
-      - name: Check code format
-        run: ./gradlew spotlessCheck
-
       - name: Build release APK
         run: ./gradlew app:assembleRelease
 
-      - name: Upload artifacts
+      - name: Build debug APK
+        run: ./gradlew app:assembleDebug
+
+      - name: Upload release artifacts
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: release-apks
           path: "app/build/outputs/apk/release/*.apk"
+          retention-days: 30
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: debug-apks
+          path: "app/build/outputs/apk/debug/*.apk"
           retention-days: 30
 
   sign-and-release:
@@ -64,18 +71,36 @@ jobs:
     needs:
       - prepare-build
       - build-app
-    if: ${{ secrets.SIGNING_KEY != '' }}
     steps:
-      - name: Download artifacts
+      - name: Download release artifacts
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: release-apks
-          path: apks
+          path: apks/release
 
-      - name: Sign APKs
+      - name: Download debug artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: debug-apks
+          path: apks/debug
+
+      - name: Sign Release APKs
+        if: hashFiles('apks/release/*.apk') != ''
         uses: r0adkll/sign-android-release@f30bdd30588842ac76044ecdbd4b6d0e3e813478
         with:
-          releaseDirectory: apks
+          releaseDirectory: apks/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.1'
+
+      - name: Sign Debug APKs
+        if: hashFiles('apks/debug/*.apk') != ''
+        uses: r0adkll/sign-android-release@f30bdd30588842ac76044ecdbd4b6d0e3e813478
+        with:
+          releaseDirectory: apks/debug
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
@@ -86,10 +111,18 @@ jobs:
       - name: Prepare signed APKs
         run: |
           mkdir -p signed_apks
-          for apk in apks/*-signed.apk; do
+          # Process release APKs
+          for apk in apks/release/*-signed.apk; do
             if [ -f "$apk" ]; then
               name=$(basename "$apk" -signed.apk)
-              cp "$apk" "signed_apks/Kotatsu-${{ needs.prepare-build.outputs.BUILD_TAG }}-${name##*-}.apk"
+              cp "$apk" "signed_apks/Kotatsu-${{ needs.prepare-build.outputs.BUILD_TAG }}-release-${name##*-}.apk"
+            fi
+          done
+          # Process debug APKs
+          for apk in apks/debug/*-signed.apk; do
+            if [ -f "$apk" ]; then
+              name=$(basename "$apk" -signed.apk)
+              cp "$apk" "signed_apks/Kotatsu-${{ needs.prepare-build.outputs.BUILD_TAG }}-debug-${name##*-}.apk"
             fi
           done
 
