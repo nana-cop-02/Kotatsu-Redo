@@ -274,11 +274,14 @@ abstract class ChaptersPagesViewModel(
 					return@launchLoadingJob
 				}
 				
-				val cbz = File(file.parentFile, file.nameWithoutExtension + ".cbz")
-				val backupDir = File(file.parentFile, ".backupfiles_pdf")
+				val parentDir = file.parentFile ?: throw IOException("Cannot determine parent directory for PDF file")
+				val cbz = File(parentDir, file.nameWithoutExtension + ".cbz")
+				val backupDir = File(parentDir, ".backupfiles_pdf")
 				LocalPdfConverter.convertPdfToCbz(file, cbz, backupDir) { current, total ->
-					val percent = (current * 100 / total)
-					conversionProgress.update { map -> map + (chapterId to percent) }
+					if (total > 0) {
+						val percent = (current * 100 / total).coerceIn(0, 100)
+						conversionProgress.update { map -> map + (chapterId to percent) }
+					}
 				}
 				conversionProgress.update { map -> map - chapterId }
 			} catch (e: Exception) {
@@ -303,7 +306,16 @@ abstract class ChaptersPagesViewModel(
 					uri.scheme == "file" -> uri
 					uri.scheme == null || uri.path?.startsWith("/") == true -> {
 						// Handle plain file path
-						File(chapterUrl).toUri()
+						val file = File(chapterUrl)
+						if (!file.exists()) {
+							errorEvent.call(FileNotFoundException("PDF file not found: ${file.path}"))
+							return@launchJob
+						}
+						if (!file.name.endsWith(".pdf", ignoreCase = true)) {
+							errorEvent.call(IllegalArgumentException("File is not a PDF: ${file.path}"))
+							return@launchJob
+						}
+						file.toUri()
 					}
 					else -> {
 						errorEvent.call(IllegalArgumentException("Unsupported chapter URI: $uri"))

@@ -197,15 +197,18 @@ class ChaptersFragment :
 
 	private fun openPdfFile(uri: android.net.Uri) {
 		try {
+			val filePath = uri.path.orEmpty()
+			if (filePath.isEmpty()) return
+			val file = java.io.File(filePath)
+			if (!file.exists()) return
 			val contentUri = if (uri.scheme == "file") {
-				// Wrap file URI with FileProvider for proper permissions
-				val file = java.io.File(uri.path.orEmpty())
 				FileProvider.getUriForFile(requireContext(), "${BuildConfig.APPLICATION_ID}.files", file)
 			} else {
 				uri
 			}
 			val intent = Intent(Intent.ACTION_VIEW).apply {
 				data = contentUri
+				type = "application/pdf"
 				flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
 			}
 			startActivity(intent)

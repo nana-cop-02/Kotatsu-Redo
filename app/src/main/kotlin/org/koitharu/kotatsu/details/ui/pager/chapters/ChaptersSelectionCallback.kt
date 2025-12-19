@@ -151,8 +151,10 @@ class ChaptersSelectionCallback(
 				if (ids.size == 1) {
 					viewModel.requestPdfConversion(ids.first())
 					mode?.finish()
+					true
+				} else {
+					false
 				}
-				true
 			}
 
 			R.id.action_open_pdf -> {
@@ -160,8 +162,10 @@ class ChaptersSelectionCallback(
 				if (ids.size == 1) {
 					viewModel.viewPdf(ids.first())
 					mode?.finish()
+					true
+				} else {
+					false
 				}
-				true
 			}
 
 			else -> false

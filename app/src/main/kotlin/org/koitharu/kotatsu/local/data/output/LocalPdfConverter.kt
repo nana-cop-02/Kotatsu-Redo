@@ -28,8 +28,7 @@ object LocalPdfConverter {
     ) = withContext(Dispatchers.IO) {
         if (!pdfFile.exists()) throw IOException("PDF file not found: ${pdfFile.path}")
 
-        pdfFile.createParentDirs()
-        cbzFile.parentFile?.createParentDirs()
+        cbzFile.parentFile?.mkdirs()
         backupDir.mkdirs()
 
         var pfd: ParcelFileDescriptor? = null
@@ -39,9 +38,10 @@ object LocalPdfConverter {
             pfd = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
             renderer = PdfRenderer(pfd)
             val pageCount = renderer.pageCount
+            if (pageCount <= 0) throw IOException("PDF has no pages")
 
             // Ensure temporary cbz is written atomically
-            val tmp = File(cbzFile.parentFile, cbzFile.name + ".tmp")
+            val tmp = File(cbzFile.parentFile ?: throw IOException("CBZ parent directory is null"), cbzFile.name + ".tmp")
             zos = ZipOutputStream(tmp.outputStream())
 
             for (i in 0 until pageCount) {
