@@ -30,8 +30,12 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew app:assembleDebug
 
+      - name: Sanitize branch name
+        run: |
+          echo "SAFE_BRANCH=${{ inputs.branch }}" | sed 's|/|-|g' >> $GITHUB_ENV
+
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
-          name: apk-${{ inputs.branch }}
+          name: apk-${{ env.SAFE_BRANCH }}
           path: app/build/outputs/apk/debug/*.apk
