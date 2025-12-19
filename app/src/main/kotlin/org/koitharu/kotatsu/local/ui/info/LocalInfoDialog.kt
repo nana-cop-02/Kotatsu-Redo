@@ -47,7 +47,7 @@ class LocalInfoDialog : AlertDialogFragment<DialogLocalInfoBinding>(), View.OnCl
 		binding.chipCleanup.setOnClickListener(this)
 		binding.chipOpenFolder.setOnClickListener(this)
 		viewModel.filesBreakdown.observe(viewLifecycleOwner) {
-			binding.textFilesDetails.text = it
+			binding.textFilesDetails.text = formatFilesBreakdown(it)
 		}
 		combine(viewModel.size, viewModel.availableSize, ::Pair).observe(viewLifecycleOwner) {
 			if (it.first >= 0 && it.second >= 0) {
@@ -92,6 +92,23 @@ class LocalInfoDialog : AlertDialogFragment<DialogLocalInfoBinding>(), View.OnCl
 		} catch (e: Exception) {
 			Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
 		}
+	}
+
+	private fun formatFilesBreakdown(breakdown: Map<String, Pair<Int, Long>>): String {
+		val context = requireContext()
+		return breakdown
+			.entries
+			.sortedByDescending { it.value.second }
+			.joinToString("\n") { (ext, pair) ->
+				val (count, size) = pair
+				val label = when (ext) {
+					"jpg", "jpeg", "png", "gif" -> "$count images"
+					"cbz", "zip", "rar" -> "$count ${ext.uppercase()}"
+					"pdf" -> "$count PDF"
+					else -> "$count $ext"
+				}
+				"$label - ${FileSize.BYTES.format(context, size)}"
+			}
 	}
 
 	private fun onCleanedUp(result: Pair<Int, Long>) {
