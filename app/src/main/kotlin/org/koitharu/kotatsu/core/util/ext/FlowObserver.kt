@@ -61,20 +61,3 @@ inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, minState: Lif
 		override suspend fun emit(value: T) = action(value)
 	})
 }
-
-// Non-suspend overloads for compatibility with existing code
-inline fun <T> Flow<T>.observe(owner: LifecycleOwner, noinline action: (T) -> Unit) {
-	observe(owner) { action(it) }
-}
-
-inline fun <T> Flow<T>.observe(owner: LifecycleOwner, minState: Lifecycle.State, noinline action: (T) -> Unit) {
-	observe(owner, minState) { action(it) }
-}
-
-inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, noinline action: (T) -> Unit) {
-	observeEvent(owner) { action(it) }
-}
-
-inline fun <T> Flow<Event<T>?>.observeEvent(owner: LifecycleOwner, minState: Lifecycle.State, noinline action: (T) -> Unit) {
-	observeEvent(owner, minState) { action(it) }
-}
